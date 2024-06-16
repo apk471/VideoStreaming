@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
+// User schema definition
 const userSchema = new Schema(
   {
     username: {
@@ -49,20 +50,26 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
+// Hash the password before saving the user
 userSchema.pre("save", async function (next) {
+  // check if the password is modified already
   if (!this.isModified("password")) {
+    // if not modified, return next
     return next();
   }
-
+  // hash the password
   this.password = await bcrypt.hash(this.password, 8);
+  // call the next middleware
   next();
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
+  // compare the password with the hashed password
   return await bcrypt.compare(password, this.password);
 };
 
 userSchema.methods.genrateAccessToken = function () {
+  // generate the access token
   return jwt.sign(
     {
       _id: this._id,
@@ -77,6 +84,7 @@ userSchema.methods.genrateAccessToken = function () {
   );
 };
 userSchema.methods.genrateRefreshToken = function () {
+  // generate the refresh token
   return jwt.sign(
     {
       _id: this._id,
@@ -91,4 +99,5 @@ userSchema.methods.genrateRefreshToken = function () {
   );
 };
 
+// Export the User model
 export const User = mongoose.model("User", userSchema);
