@@ -98,7 +98,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { email, password, username } = req.body;
 
-  if (!email || !username) {
+  if (!email && !username) {
     throw new ApiError(400, "Please provide email or username");
   }
 
@@ -108,7 +108,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  const isPasswordValid = await user.isPasswordValid(password);
+  const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
     throw new ApiError(404, "Invalid User credentials");
@@ -160,4 +160,54 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized Request");
+  }
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Unauthorized Request");
+    }
+
+    if (user?.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(401, "Refresh token is invalid");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, newRefreshToken } = await generateRefreshAndAcessToken(
+      user._id
+    );
+
+    return res
+      .status(200)
+      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken: newRefreshToken },
+          "Token refreshed"
+        )
+      );
+  } catch (error) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, {}, error?.message || "Invalid Token"));
+  }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
