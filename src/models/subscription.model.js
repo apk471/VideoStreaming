@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-
+// Subscription Schema
 const subscriptionSchema = new Schema(
   {
     subscriber: {
