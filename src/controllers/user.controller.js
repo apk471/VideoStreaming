@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
+// A controller to genrate refresh access token
 const generateRefreshAndAcessToken = async (userId) => {
   try {
     const user = await User.findById(userId);
